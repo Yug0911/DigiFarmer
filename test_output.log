@@ -1,0 +1,50 @@
+🚀 Starting DigiFarmer Backend API Tests
+Testing against: https://digifarmer.preview.emergentagent.com/api
+============================================================
+
+=== Testing API Health ===
+✅ PASS - API Health Check: API is responding correctly
+
+=== Testing Status Endpoints ===
+✅ PASS - Create Status Check: Status check created successfully
+✅ PASS - Get Status Checks: Retrieved 2 status checks
+
+=== Testing AI Chat Integration ===
+✅ PASS - AI Chat - What crops should I grow in Pu...: Got relevant agricultural advice (1149 chars)
+✅ PASS - AI Chat - My wheat crop has yellow spots...: Got relevant agricultural advice (527 chars)
+✅ PASS - AI Chat - What is the best fertilizer fo...: Got relevant agricultural advice (1385 chars)
+
+=== Testing Chat History ===
+✅ PASS - Chat History Retrieval: Retrieved 3 messages with all required fields
+
+=== Testing Crop Recommendation System ===
+✅ PASS - Crop Recommendation Scenario 1: Got recommendations: Rice, Wheat, Sugarcane (confidence: 0.85)
+✅ PASS - Crop Recommendation Scenario 2: Got recommendations: Rice, Wheat, Sugarcane (confidence: 0.85)
+✅ PASS - Crop Recommendation Scenario 3: Got recommendations: Rice, Wheat, Sugarcane (confidence: 0.85)
+
+=== Testing Market Price APIs ===
+✅ PASS - Get All Market Prices: Retrieved 0 market price entries
+✅ PASS - Get Specific Crop Prices: Retrieved 0 rice price entries
+
+=== Testing Profit Prediction ===
+✅ PASS - Profit Prediction - Rice: Got detailed profit analysis for 5.0 acres
+✅ PASS - Profit Prediction - Wheat: Got detailed profit analysis for 10.0 acres
+✅ PASS - Profit Prediction - Cotton: Got detailed profit analysis for 3.5 acres
+
+=== Testing Error Handling ===
+❌ FAIL - Invalid Chat Request: Should reject empty message, got HTTP 200
+❌ FAIL - Invalid Crop Recommendation: Should reject invalid parameters, got HTTP 200
+✅ PASS - Non-existent Chat History: Properly returned empty list for non-existent session
+
+============================================================
+🏁 TEST SUMMARY
+============================================================
+Total Tests: 18
+✅ Passed: 16
+❌ Failed: 2
+⏱️  Duration: 147.35 seconds
+📊 Success Rate: 88.9%
+
+❌ FAILED TESTS:
+  - Invalid Chat Request: Should reject empty message, got HTTP 200
+  - Invalid Crop Recommendation: Should reject invalid parameters, got HTTP 200
