@@ -146,7 +146,7 @@ export default function DigiFarmerHome() {
 
   const handleQuickAction = (action: QuickAction) => {
     if (action.route) {
-      router.push(action.route);
+      router.push(action.route as any);
       return;
     }
 
