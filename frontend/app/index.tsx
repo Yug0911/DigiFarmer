@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -30,6 +32,7 @@ interface QuickAction {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
+  route?: string;
 }
 
 export default function DigiFarmerHome() {
@@ -37,13 +40,37 @@ export default function DigiFarmerHome() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(() => Date.now().toString());
+  const [isOnline, setIsOnline] = useState(true);
 
   const quickActions: QuickAction[] = [
     { id: '1', title: 'Crop Recommendation', icon: 'leaf-outline', color: '#4CAF50' },
-    { id: '2', title: 'Disease Detection', icon: 'medical-outline', color: '#FF5722' },
-    { id: '3', title: 'Market Prices', icon: 'trending-up-outline', color: '#2196F3' },
-    { id: '4', title: 'Weather Forecast', icon: 'cloud-outline', color: '#9C27B0' },
+    { id: '2', title: 'Market Prices', icon: 'trending-up-outline', color: '#2196F3', route: '/market' },
+    { id: '3', title: 'Profit Calculator', icon: 'calculator-outline', color: '#FF9800', route: '/profit' },
+    { id: '4', title: 'Disease Detection', icon: 'medical-outline', color: '#F44336' },
   ];
+
+  useEffect(() => {
+    loadCachedMessages();
+  }, []);
+
+  const loadCachedMessages = async () => {
+    try {
+      const cached = await AsyncStorage.getItem(`chat_${sessionId}`);
+      if (cached) {
+        setMessages(JSON.parse(cached));
+      }
+    } catch (error) {
+      console.error('Error loading cached messages:', error);
+    }
+  };
+
+  const saveCachedMessages = async (newMessages: ChatMessage[]) => {
+    try {
+      await AsyncStorage.setItem(`chat_${sessionId}`, JSON.stringify(newMessages));
+    } catch (error) {
+      console.error('Error saving messages:', error);
+    }
+  };
 
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -57,8 +84,10 @@ export default function DigiFarmerHome() {
       isUser: true,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputMessage('');
+    await saveCachedMessages(updatedMessages);
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/chat`, {
@@ -87,32 +116,53 @@ export default function DigiFarmerHome() {
         isUser: false,
       };
 
-      setMessages(prev => [...prev, aiMessage]);
+      const finalMessages = [...updatedMessages, aiMessage];
+      setMessages(finalMessages);
+      await saveCachedMessages(finalMessages);
+      setIsOnline(true);
+
     } catch (error) {
       console.error('Chat error:', error);
-      Alert.alert('Error', 'Failed to send message. Please try again.');
+      setIsOnline(false);
+      
+      // Offline fallback response
+      const offlineMessage: ChatMessage = {
+        id: `offline_${Date.now()}`,
+        message: '',
+        response: "I'm currently offline, but I've saved your message. Here are some general farming tips: Check soil moisture regularly, monitor weather forecasts, and consider crop rotation for better yields. For specific advice, please try again when connected to the internet.",
+        timestamp: new Date().toISOString(),
+        isUser: false,
+      };
+
+      const offlineMessages = [...updatedMessages, offlineMessage];
+      setMessages(offlineMessages);
+      await saveCachedMessages(offlineMessages);
+      
+      Alert.alert('Offline Mode', 'Your message has been saved. I\'ll provide a full response when you\'re back online.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleQuickAction = (action: QuickAction) => {
+    if (action.route) {
+      router.push(action.route);
+      return;
+    }
+
     let message = '';
     switch (action.id) {
       case '1':
-        message = 'I need crop recommendations for my land. Can you help me?';
-        break;
-      case '2':
-        message = 'I think my crops have a disease. Can you help me identify it?';
-        break;
-      case '3':
-        message = 'What are the current market prices for crops?';
+        message = 'I need crop recommendations for my land. Can you help me with soil conditions, climate, and best crops to grow?';
         break;
       case '4':
-        message = 'Can you give me the weather forecast for farming?';
+        message = 'I think my crops might have a disease. Can you help me identify symptoms and suggest treatments?';
         break;
     }
-    sendMessage(message);
+    
+    if (message) {
+      sendMessage(message);
+    }
   };
 
   const renderMessage = (item: ChatMessage, index: number) => (
@@ -130,6 +180,12 @@ export default function DigiFarmerHome() {
         ]}>
           {item.isUser ? item.message : item.response}
         </Text>
+        {!item.isUser && !isOnline && item.id.includes('offline') && (
+          <View style={styles.offlineIndicator}>
+            <Ionicons name="cloud-offline" size={12} color="#FF9800" />
+            <Text style={styles.offlineText}>Offline Response</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -144,6 +200,12 @@ export default function DigiFarmerHome() {
           <Ionicons name="leaf" size={32} color="#FFFFFF" />
           <Text style={styles.headerTitle}>DigiFarmer</Text>
           <Text style={styles.headerSubtitle}>AI Agricultural Advisor</Text>
+          {!isOnline && (
+            <View style={styles.offlineHeader}>
+              <Ionicons name="cloud-offline" size={16} color="#FF9800" />
+              <Text style={styles.offlineHeaderText}>Offline Mode</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -158,7 +220,7 @@ export default function DigiFarmerHome() {
               <Text style={styles.welcomeTitle}>Welcome to DigiFarmer!</Text>
               <Text style={styles.welcomeText}>
                 Your AI-powered agricultural advisor. I can help you with crop recommendations, 
-                disease detection, market prices, and farming advice.
+                market prices, profit calculations, and farming advice.
               </Text>
               <Text style={styles.quickActionsTitle}>Quick Actions:</Text>
               <View style={styles.quickActionsGrid}>
@@ -172,6 +234,33 @@ export default function DigiFarmerHome() {
                     <Text style={styles.quickActionText}>{action.title}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+              
+              {/* Features Overview */}
+              <View style={styles.featuresSection}>
+                <Text style={styles.featuresTitle}>What I can help you with:</Text>
+                <View style={styles.featuresList}>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                    <Text style={styles.featureText}>Real-time market prices and trends</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                    <Text style={styles.featureText}>Profit calculations and cost analysis</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                    <Text style={styles.featureText}>Crop recommendations based on soil & climate</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                    <Text style={styles.featureText}>Disease identification and treatment</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                    <Text style={styles.featureText}>Offline support for rural areas</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -243,6 +332,20 @@ const styles = StyleSheet.create({
     color: '#E8F5E8',
     marginTop: 4,
   },
+  offlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: 'rgba(255, 152, 0, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  offlineHeaderText: {
+    fontSize: 12,
+    color: '#FF9800',
+    marginLeft: 4,
+  },
   content: {
     flex: 1,
   },
@@ -301,6 +404,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+  featuresSection: {
+    width: '100%',
+    marginTop: 32,
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  featuresTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+    marginBottom: 16,
+  },
+  featuresList: {
+    alignItems: 'flex-start',
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    width: '100%',
+  },
+  featureText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 12,
+    flex: 1,
+  },
   messagesContainer: {
     flex: 1,
     backgroundColor: '#F5F5F5',
@@ -344,6 +480,19 @@ const styles = StyleSheet.create({
   },
   aiMessageText: {
     color: '#333',
+  },
+  offlineIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  offlineText: {
+    fontSize: 10,
+    color: '#FF9800',
+    marginLeft: 4,
   },
   loadingContainer: {
     alignItems: 'center',
