@@ -46,7 +46,7 @@ export default function DigiFarmerHome() {
     { id: '1', title: 'Crop Recommendation', icon: 'leaf-outline', color: '#4CAF50' },
     { id: '2', title: 'Market Prices', icon: 'trending-up-outline', color: '#2196F3', route: '/market' },
     { id: '3', title: 'Profit Calculator', icon: 'calculator-outline', color: '#FF9800', route: '/profit' },
-    { id: '4', title: 'Disease Detection', icon: 'medical-outline', color: '#F44336' },
+    { id: '4', title: 'AI Chat Assistant', icon: 'chatbubbles-outline', color: '#9C27B0', route: '/ai-chat' },
   ];
 
   useEffect(() => {
