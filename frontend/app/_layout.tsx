@@ -49,6 +49,13 @@ export default function RootLayout() {
             title: 'Profit Calculator'
           }} 
         />
+        <Stack.Screen 
+          name="ai-chat" 
+          options={{ 
+            title: 'AI Agricultural Chat',
+            headerShown: false
+          }} 
+        />
       </Stack>
     </>
   );
